@@ -8,13 +8,27 @@ function u = solve_day_ahead_fixed(scens_design, params, opts)
 
     if nargin < 2, params = struct(); end
     if nargin < 3, opts = struct(); end
-    if ~isfield(opts,'alpha'), opts.alpha = getfield(params,'alpha',0.90); end %#ok<GFLD>
+    if ~isfield(opts,'alpha')
+        if isfield(params,'alpha')
+            opts.alpha = params.alpha;
+        else
+            opts.alpha = 0.90;
+        end
+    end
     alpha = opts.alpha;
 
     switches = struct('cvar',1,'opf',0,'coupled',0);
-    if isfield(opts,'switches')
-        fn = fieldnames(opts.switches);
-        for i=1:numel(fn), switches.(fn{i}) = opts.switches.(fn{i}); end
+    if isfield(opts,'switches') && isstruct(opts.switches)
+        src = opts.switches;
+    else
+        % compatible with callers passing switches directly as opts
+        src = opts;
+    end
+    fn = fieldnames(src);
+    for i=1:numel(fn)
+        if isfield(switches, fn{i})
+            switches.(fn{i}) = src.(fn{i});
+        end
     end
 
     % collect matrices
@@ -75,5 +89,33 @@ function u = solve_day_ahead_fixed(scens_design, params, opts)
         end
     end
 
-    u = [P_cap; F_cap];
+    % EXP-U-SCALE: optional quota output mode for unified u semantics.
+    quota_mode = true;
+    if isfield(params,'u_mode')
+        quota_mode = strcmpi(string(params.u_mode), "quota");
+    elseif isfield(params,'u_quota_mode')
+        quota_mode = logical(params.u_quota_mode);
+    end
+
+    if quota_mode && isfield(scens_design(1),'Pmax') && isfield(scens_design(1),'Fcap')
+        Pmax = max(scens_design(1).Pmax(:), 1e-9);
+        Fcap = max(scens_design(1).Fcap(:), 1e-9);
+        u = [min(max(P_cap ./ Pmax, 0), 1); min(max(F_cap ./ Fcap, 0), 1)];
+    else
+    % EXP-U-SCALE: optional quota output mode for unified u semantics.
+    quota_mode = true;
+    if isfield(params,'u_mode')
+        quota_mode = strcmpi(string(params.u_mode), "quota");
+    elseif isfield(params,'u_quota_mode')
+        quota_mode = logical(params.u_quota_mode);
+    end
+
+    if quota_mode && isfield(scens_design(1),'Pmax') && isfield(scens_design(1),'Fcap')
+        Pmax = max(scens_design(1).Pmax(:), 1e-9);
+        Fcap = max(scens_design(1).Fcap(:), 1e-9);
+        u = [min(max(P_cap ./ Pmax, 0), 1); min(max(F_cap ./ Fcap, 0), 1)];
+    else
+        u = [P_cap; F_cap];
+    end
+end
 end
