@@ -52,8 +52,23 @@ function m = sim_one_scenario(u, scen, params)
     % --- parse u ---
     u = u(:);
     if numel(u) == 2*R
-        P_allow = u(1:R);
-        F_allow = u(R+1:2*R);
+        u_ch = u(1:R);
+        u_cp = u(R+1:2*R);
+
+        % EXP-U-SCALE: auto-detect quota-vs-absolute control semantics.
+        use_quota_mode = false;
+        if isfield(scen,'Pmax') && isfield(scen,'Fcap')
+            frac_in_range = mean([u_ch(:); u_cp(:)] >= -1e-9 & [u_ch(:); u_cp(:)] <= 1.5);
+            use_quota_mode = (frac_in_range >= 0.8);
+        end
+
+        if use_quota_mode
+            P_allow = max(u_ch,0) .* scen.Pmax(:);
+            F_allow = max(u_cp,0) .* scen.Fcap(:);
+        else
+            P_allow = u_ch;
+            F_allow = u_cp;
+        end
 
         % default: constant over time
         P_allow_rt = repmat(P_allow,1,T);
