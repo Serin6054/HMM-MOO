@@ -1,0 +1,6 @@
+case_id,case_name,coupled,cvar,opf,ma_pso,kalman,va,two_stage,use_vfc,use_reserve,use_idl_mig,notes
+C1,Baseline,0,0,0,0,0,0,1,0,0,0,not implemented yet
+C2,+Coupling,1,0,0,0,0,0,1,0,0,0,not implemented yet
+C3,+CVaR,1,1,0,0,0,0,1,0,0,0,not implemented yet
+C4,+OPF,1,1,1,0,0,0,1,0,0,0,not implemented yet
+C5,Full(Proposed),1,1,1,1,1,1,1,0,0,0,not implemented yet
